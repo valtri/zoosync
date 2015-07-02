@@ -30,7 +30,7 @@ setup(
         'Development Status :: 3 - Alpha',
 
         'Intended Audience :: Information Technology',
-        'Topic :: Software Development :: Topic :: System :: Distributed Computing',
+        'Topic :: System :: Distributed Computing',
 
         'License :: OSI Approved :: MIT License',
 
