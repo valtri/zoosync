@@ -68,12 +68,12 @@ def pinger(i, q):
 	while True:
 		s, ip = q.get()
 		#print "[thread %s] pinging %s" % (i, ip)
-		ret = subprocess.call("ping6 -c 1 -i 2 %s" % ip,
+		ret = subprocess.call("ping6 -c 1 -W 2 %s" % ip,
 			shell = True,
 			stdout = open('/dev/null', 'w'),
 			stderr = subprocess.STDOUT)
 		if ret != 0:
-			ret = subprocess.call("ping -c 1 -i 2 %s" % ip,
+			ret = subprocess.call("ping -c 1 -W 2 %s" % ip,
 				shell = True,
 				stdout = open('/dev/null', 'w'),
 				stderr = subprocess.STDOUT)
