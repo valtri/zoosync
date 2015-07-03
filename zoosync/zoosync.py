@@ -51,7 +51,9 @@ COMMANDS:\n\
   get   ...... get given services\n\
   cleanup .... get given services (only active), remove inactive\n\
   create ..... create a service\n\
+  register ... register a service\n\
   remove ..... remove given services\n\
+  unregister . unregister services\n\
   wait ......  wait for given services\n\
 ' % sys.argv[0]
 
@@ -86,8 +88,8 @@ def pinger(i, q):
 		q.task_done()
 
 
-def remove():
-	global output, summary
+def remove(force = False):
+	global output, summary, hostname
 
 	if not services:
 		return
@@ -98,10 +100,13 @@ def remove():
 		path = '%s/%s' % (base, s)
 		if zk.exists(path):
 			value = zk.retry(zk.get, path)[0].decode('utf-8')
-			if not dry:
-				zk.retry(zk.delete, path)
-			summary['REMOVED'].append(s)
-			output['REMOVED_%s' % service2env(s)] = value
+			if value == hostname or force:
+				if not dry:
+					zk.retry(zk.delete, path)
+				summary['REMOVED'].append(s)
+				output['REMOVED_%s' % service2env(s)] = value
+			else:
+				output['SERVICE_%s' % service2env(s)] = value
 
 
 def get():
@@ -293,13 +298,17 @@ def main(argv=sys.argv[1:]):
 			if command == 'get':
 				get()
 			elif command == 'remove':
-				remove()
+				remove(force = True)
 			elif command == 'cleanup':
 				cleanup()
 			elif command == 'create':
 				create()
 			elif command == 'list':
 				list()
+			elif command == 'register':
+				create()
+			elif command == 'unregister':
+				remove(force = False)
 			elif command == 'wait':
 				wait()
 	finally:
