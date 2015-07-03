@@ -59,7 +59,7 @@ COMMANDS:\n\
 
 
 def service2env(s):
-	return re.sub(r'-', r'_', s.upper())
+	return re.sub(r'[\.-]', r'_', s.upper())
 
 
 #
