@@ -17,3 +17,34 @@ The output is in the form of shell variable assignement, so tool could be used t
 
  echo "active: ${SERVICES}"
  echo "missing: ${MISSING}"
+
+Deployment
+==========
+
+::
+
+  # install
+
+  pip install zoosync
+
+  # configure
+
+  cat > /etc/zoosyncrc <<EOF
+  hosts=zoo1,zoo2,zoo3
+  user=user
+  password=changeit
+  services=service1,service2
+  EOF
+
+  # automatic startup
+
+  # 1) SystemV
+
+  cp scripts/zoosync.sh /etc/init.d/
+  #debian: update-rc.d zoosync defaults
+  #redhat: chkconfig zoosync on
+
+  # 2) SystemD
+
+  cp scripts/zoosync.service /etc/systemd/system/
+  systemctl enable zoosync

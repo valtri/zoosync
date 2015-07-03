@@ -1,0 +1,14 @@
+[Unit]
+Description=Register and unregister service in Zookeeper
+After=network.target
+
+[Service]
+Type=forking
+EnvironmentFile=-/etc/default/zoosync
+ExecStart=/usr/bin/zoosync ${ARGS} register
+ExecStop=/usr/bin/zoosync ${ARGS} unregister
+TimeoutSec=0
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target

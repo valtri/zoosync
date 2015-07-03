@@ -49,6 +49,10 @@ setup(
 
     install_requires=['kazoo'],
 
+    package_data={
+        'zoosync': ['scripts/zoosync.service', 'scripts/zoosync.sh'],
+    },
+
     entry_points={
         'console_scripts': [
             'zoosync=zoosync.zoosync:main',
