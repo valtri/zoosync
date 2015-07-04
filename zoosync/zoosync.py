@@ -206,7 +206,7 @@ def wait():
 		del summary['MISSING']
 
 
-def create():
+def create(strict = True):
 	global hostname
 
 	if not services:
@@ -217,10 +217,14 @@ def create():
 	for s in services:
 		path = '%s/%s' % (base, s)
 		name = service2env(s)
-		if not dry:
+		value = None
+		if not strict and zk.exists(path):
+			value = zk.retry(zk.get, path)[0].decode('utf-8')
+		if not dry and not value:
 			zk.retry(zk.create, path, hostname, [myAcl, worldAcl])
+			value = hostname
 		summary['SERVICES'].append(s)
-		output['SERVICE_%s' % name] = hostname
+		output['SERVICE_%s' % name] = value
 
 
 def parse_option(opt = None, arg = None, key = None, value = None):
@@ -302,11 +306,11 @@ def main(argv=sys.argv[1:]):
 			elif command == 'cleanup':
 				cleanup()
 			elif command == 'create':
-				create()
+				create(strict = True)
 			elif command == 'list':
 				list()
 			elif command == 'register':
-				create()
+				create(strict = False)
 			elif command == 'unregister':
 				remove(force = False)
 			elif command == 'wait':

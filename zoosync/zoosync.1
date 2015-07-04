@@ -55,7 +55,7 @@ Remove all inactive services and get information about all requested services. T
 
 .TP
 \fBcreate\fR
-Create a service.
+Create services. If any service is already created, error is returned.
 
 .TP
 \fBget\fR
@@ -67,7 +67,7 @@ Get information about all services.
 
 .TP
 \fBregister\fR
-Register services. It's alias for \fBcreate\fR.
+Register services. If any service is already created, it is not updated and no error is returned.
 
 .TP
 \fBremove\fR
@@ -75,7 +75,7 @@ Remove services.
 
 .TP
 \fBunregister\fR
-Unregister services. This is like \fBremove\fR command, but it only remove services with the same hostname.
+Unregister services. It is like \fBremove\fR command, but it only remove services with the same hostname.
 
 .TP
 \fBwait\fR
