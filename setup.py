@@ -50,7 +50,11 @@ setup(
     install_requires=['kazoo'],
 
     package_data={
-        'zoosync': ['scripts/zoosync.service', 'scripts/zoosync.sh'],
+        'zoosync': [
+            'zoosync.1',
+            'scripts/zoosync.service',
+            'scripts/zoosync.sh',
+        ],
     },
 
     entry_points={

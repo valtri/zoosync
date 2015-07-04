@@ -6,7 +6,7 @@ Zoosync is a simple service discovery tool using Zookeeper as database backend.
 Usage
 =====
 
-See `zoosync --help` for options.
+See `zoosync --help` for brief usage or manual page for more detailed usage.
 
 The output is in the form of shell variable assignement, so tool could be used this way::
 

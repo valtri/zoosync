@@ -1,0 +1,147 @@
+.TH ZOOSYNC 1 "July 2014" "CENSET" "Zoosync"
+
+
+.SH NAME
+zoosync \- Service Discovery tool using Zookeeper
+
+
+.SH SYNOPSIS
+\fBzoosync\fR [\fIOPTIONS\fR] [\fICOMMANDS\fR]
+
+
+.SH DESCRIPTION
+\fBzoosync\fR is a simple service discovery tool using Zookeeper as database backend.
+
+
+.SH OPTIONS
+.TP
+\fB-h\fR, \fP--help\fR
+Help usage message.
+
+.TP
+\fB-b\fR, \fP--base\fR \fIBASE_DIRECTORY\fR
+Base zookeeper directory. Default is \fI/indigo-testbed\fR.
+
+.TP
+\fB-H\fR, \fP--hosts\fR \fISERVER1[,SERVER2...]\fR
+Comma separated list of Zookeeper servers.
+
+.TP
+\fB--hostname\fR \fIHOSTNAME\fR
+Use specified hostname instead of the system one.
+
+.TP
+\fB-n\fR, \fP--dry\fR
+Do not perform any changes, only read-only network operations.
+
+.TP
+\fB-u\fR, \fP--user\fR
+User name for autentization to Zookeeper service. Default is \fIindigo-testbed\fR.
+
+.TP
+\fB-p\fR, \fP--password\fR
+Password for autentization to Zookeeper service. Default if \fIchangeit\fR.
+
+.TP
+\fB-s\fR, \fP--services\fR SERVICE1[,SERVICE2...]
+Comma separated list of services.
+
+
+.SH COMMANDS
+
+.TP
+\fBcleanup\fR
+Remove all inactive services and get information about all requested services. The test of activity is performed by \fIping\fR and \fIping6\fR commands.
+
+.TP
+\fBcreate\fR
+Create a service.
+
+.TP
+\fBget\fR
+Get information about all requested services.
+
+.TP
+\fBlist\fR
+Get information about all services.
+
+.TP
+\fBregister\fR
+Register services. It's alias for \fBcreate\fR.
+
+.TP
+\fBremove\fR
+Remove services.
+
+.TP
+\fBunregister\fR
+Unregister services. This is like \fBremove\fR command, but it only remove services with the same hostname.
+
+.TP
+\fBwait\fR
+Sit and wait, until all required services appear in Zookeeper.
+
+
+.SH ENVIRONMENT
+
+.TP
+\fBZOOSYNC_CONF\fR
+Location of the configuration file.
+
+
+.SH FILES
+
+.TP
+\fB/etc/zoosyncrc\fR
+Default location of a configuration file. All long options are available, see \fBOPTIONS\fR.
+
+
+.SH EXAMPLES
+
+.SS Cleanup and wait for services
+
+This may be called on the side requiring given service.
+
+ ZOOKEEPER_HOSTS='zoo1.example.com,zoo2.example.com,zoo3.example.com'
+ MY_SERVICES='service,service2,service3'
+
+ eval `zoosync --host ${ZOOKEEPER_HOSTS} --services ${MY_SERVICES} cleanup`
+ 
+ echo "active: ${SERVICES}"
+ echo "missing: {MISSING}"
+ 
+ eval `zoosync --host ${ZOOKEEPER_HOSTS} --services ${MY_SERVICES} wait`
+
+.SS Service provider start-up
+
+ ZOOKEEPER_HOSTS='zoo1.example.com,zoo2.example.com,zoo3.example.com'
+ zoosync --host ${ZOOKEEPER_HOSTS} --services service1 register
+
+.SS Service provider shutdown
+
+ ZOOKEEPER_HOSTS='zoo1.example.com,zoo2.example.com,zoo3.example.com'
+ zoosync --host ${ZOOKEEPER_HOSTS} --services service1 unregister
+
+
+.SH NOTES
+
+.SS Configuration
+
+The config file \fI/etc/zoosyncrc\fR can be used for list for Zookeper servers, credentials, and other options:
+
+ cat > /etc/zoosyncrc <<EOF
+ hosts=zoo1.example.com,zoo2.example.com,zoo3.example.com
+ user=indigo-testbed
+ password=changeit
+ services=service1,service2,service3
+ EOF
+
+You may need to use system startup scripts on service providers to register and unregister services.
+
+
+.SH BUGS
+Please report all bugs to issue tracker at \fIhttps://github.com/valtri/zoosync/issues\fR.
+
+
+.SH AUTHORS
+CESNET
