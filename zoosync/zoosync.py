@@ -21,12 +21,13 @@ dry = False
 user = 'indigo-testbed'
 password = 'changeit'
 services = []
+admin_acl = 'world:anyone:r'
 
 hostname = socket.getfqdn()
 poll_interval=10
 zk = None
+adminAcls = []
 myAcl = None
-worldAcl = None
 
 output = {}
 summary = {}
@@ -39,6 +40,7 @@ def usage():
 	print 'Usage: %s [OPTIONS] commands\n\
 OPTIONS:\n\
   -h, --help ......... usage message\n\
+  -a, --acl .......... additional ACL\n\
   -b, --base ......... base zookeeper directory\n\
   -H, --hosts ........ comma separated list of hosts\n\
   --hostname ......... use specified hostname\n\
@@ -60,6 +62,34 @@ COMMANDS:\n\
 
 def service2env(s):
 	return re.sub(r'[\.-]', r'_', s.upper())
+
+
+def str2acl(s):
+	create = False
+	delete = False
+	read = False
+	write = False
+	admin = False
+
+	if re.match('.+:.+:.+', s):
+		permissions = re.sub(r'(.*):([^:]*)', r'\2', s)
+		s = re.sub(r'(.*):([^:]*)', r'\1', s)
+		scheme, credential = re.split(':', s, 1)
+
+		if re.search('c', permissions):
+			create = True
+		if re.search('d', permissions):
+			delete = True
+		if re.search('r', permissions):
+			read = True
+		if re.search('w', permissions):
+			write = True
+		if re.search('a', permissions):
+			admin = True
+		return make_acl(scheme, credential, create = create, delete = delete, read = read, write = write, admin = admin)
+	else:
+		print >> sys.stderr, 'Warning: invalid ACL: %s' % s
+		return None
 
 
 #
@@ -221,18 +251,20 @@ def create(strict = True):
 		if not strict and zk.exists(path):
 			value = zk.retry(zk.get, path)[0].decode('utf-8')
 		if not dry and not value:
-			zk.retry(zk.create, path, hostname, [myAcl, worldAcl])
+			zk.retry(zk.create, path, hostname, adminAcls + [myAcl])
 			value = hostname
 		summary['SERVICES'].append(s)
 		output['SERVICE_%s' % name] = value
 
 
 def parse_option(opt = None, arg = None, key = None, value = None):
-	global base, dry, hostname, hosts, user, password, services
+	global base, admin_acl, dry, hostname, hosts, user, password, services
 
 	if opt in ['-h', '--help']:
 		usage()
 		sys.exit(0)
+	elif opt in ['-a', '--acl'] or key in ['acl', 'acl']:
+		admin_acl = arg
 	elif opt in ['-n', '--dry'] or key in ['dry']:
 		dry = True
 	elif opt in ['--hostname'] or key in ['hostname']:
@@ -250,7 +282,7 @@ def parse_option(opt = None, arg = None, key = None, value = None):
 
 
 def main(argv=sys.argv[1:]):
-	global zk, myAcl, worldAcl
+	global zk, myAcl, adminAcls
 	f = None
 
 	config_file = os.getenv('ZOOSYNC_CONF', '/etc/zoosyncrc')
@@ -273,7 +305,7 @@ def main(argv=sys.argv[1:]):
 		f.close()
 
 	try:
-		opts, args = getopt.getopt(argv, 'hb:H:nu:p:s:',['help', 'base=', 'hostname=', 'hosts=', 'dry', 'user=', 'password=', 'services='])
+		opts, args = getopt.getopt(argv, 'ha:b:H:nu:p:s:',['help', 'acl=', 'base=', 'hostname=', 'hosts=', 'dry', 'user=', 'password=', 'services='])
 	except getopt.GetoptError:
 		print 'Error parsing arguments'
 		usage()
@@ -285,9 +317,16 @@ def main(argv=sys.argv[1:]):
 		parse_option(opt = opt, arg = arg)
 
 	logging.basicConfig()
+
 	myAcl = make_digest_acl(user, password, all=True)
-	worldAcl = make_acl('world', 'anyone', read=True)
-	
+	if admin_acl:
+		admin_acl_list = re.split(',', admin_acl)
+		for s in admin_acl_list:
+			acl = str2acl(s);
+			if acl:
+				adminAcls += [acl]
+	#print '# Admin ACL: %s' % adminAcls
+
 	zk = KazooClient(
 		hosts,
 		auth_data=[('digest', '%s:%s' % (user, password))]
@@ -296,7 +335,8 @@ def main(argv=sys.argv[1:]):
 	zk.start()
 	
 	try:
-		zk.retry(zk.ensure_path, base, [myAcl, worldAcl])
+		if not dry:
+			zk.retry(zk.ensure_path, base, adminAcls + [myAcl])
 
 		for command in args:
 			if command == 'get':

@@ -19,6 +19,18 @@ zoosync \- Service Discovery tool using Zookeeper
 Help usage message.
 
 .TP
+\fB-a\fR, \fP--acl\fR \fIACL\fR
+Additional ACL set for each service node, separated by commas. Default is \fIworld:anyone:r\fR.
+
+When using separated permissions, there should be also the shared admin ACL, for example:
+
+.nf
+.RS
+\fIdigest:indigo-testbed:84VCzhAPjyq3fmBce9rvc3qgme4=:cdrwa,world:anyone:r\fR.
+.RE
+.ni
+
+.TP
 \fB-b\fR, \fP--base\fR \fIBASE_DIRECTORY\fR
 Base zookeeper directory. Default is \fI/indigo-testbed\fR.
 
@@ -147,6 +159,21 @@ EOF
 .fi
 
 You may need to use system startup scripts on service providers to register and unregister services.
+
+
+.SS Hierarchical ACL
+
+By default ACLs are created on the base directory by the first service provider client creating the base directory. It is expected all clients are configured with the same credentials.
+
+It is possible to use separated credentials for particular services. In that case set \fBcdrw\fR permissions for all service providers and \fBcdrwa\fR permissions for the administrator identity. For example:
+
+.nf
+.RS
+setAcl /indigo\-testbed digest:indigo\-testbed:84VCzhAPjyq3fmBce9rvc3qgme4=:cdrwa,world:anyone:r,user1:wz6UK/Kzj7hbM8lUA/zNat8T6/M=:cdrw,user2:xkNyJWRcR8+7ugcyJpCXtiQ41rs=:cdrw
+.RE
+.fi
+
+Clients providing the same service must have the same credentials and all clients must have configured shared ACLs for easier cleanups (see \fB\-\-acl\fR in \fBOPTIONS\fR).
 
 
 .SH BUGS
