@@ -31,6 +31,7 @@ admin_acl = 'world:anyone:r'
 
 hostname = socket.getfqdn()
 poll_interval=10
+wait_time = 1800
 zk = None
 adminAcls = []
 hiddenAcls = []
@@ -54,6 +55,7 @@ OPTIONS:\n\
   --hostname ......... use specified hostname\n\
   -m, --multi .......  selection from multiple endpoints\n\
   -u, --user ......... user\n\
+  -w, --wait ......... time to wait for wait command\n\
   -p, --password ..... password\n\
   -s, --services ..... comma separated list of services\n\
 COMMANDS:\n\
@@ -309,13 +311,19 @@ def remove(strict = True):
 def wait():
 	if not services:
 		return
+	if wait_time > 0:
+		count = wait_time / poll_interval
+	else:
+		count = 1
 
 	ok=False
-	while not ok:
+	while not ok and count > 0:
 		ok=True
+		if wait_time > 0:
+			count -= 1
 		for s in services:
 			path = '%s/%s' % (base, s)
-			value = None
+			values = None
 			if zk.exists(path):
 				values = zoo_hostnames(path, multi)
 			if not values:
@@ -409,7 +417,7 @@ def untag(tagname):
 
 
 def parse_option(opt = None, arg = None, key = None, value = None):
-	global base, admin_acl, dry, hostname, hosts, multi, user, password, services
+	global base, admin_acl, dry, hostname, hosts, multi, user, password, services, wait_time
 
 	if opt in ['-h', '--help']:
 		usage()
@@ -433,6 +441,8 @@ def parse_option(opt = None, arg = None, key = None, value = None):
 			multi = MULTI_FIRST
 	elif opt in ['-u', '--user'] or key in ['user']:
 		user = arg
+	elif opt in ['-w', '--wait'] or key in ['wait']:
+		wait_time = int(arg)
 	elif opt in ['-p', '--password'] or key in ['password']:
 		password = arg
 	elif opt in ['-s', '--services'] or key in ['services']:
@@ -463,7 +473,7 @@ def main(argv=sys.argv[1:]):
 		f.close()
 
 	try:
-		opts, args = getopt.getopt(argv, 'ha:b:H:m:nu:p:s:',['help', 'acl=', 'base=', 'hostname=', 'hosts=', 'dry', 'multi=', 'user=', 'password=', 'services='])
+		opts, args = getopt.getopt(argv, 'ha:b:H:m:np:s:u:w:',['help', 'acl=', 'base=', 'hostname=', 'hosts=', 'dry', 'multi=', 'user=', 'password=', 'services=', 'wait='])
 	except getopt.GetoptError:
 		print 'Error parsing arguments'
 		usage()

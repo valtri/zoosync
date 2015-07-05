@@ -35,7 +35,7 @@ When using separated permissions, there should be also the shared admin ACL, for
 Base zookeeper directory. Default is \fI/indigo-testbed\fR.
 
 .TP
-\fB-H\fR, \fP--hosts\fR \fISERVER1[,SERVER2...]\fR
+\fB-H\fR, \fP--hosts\fR \fISERVER\fR...
 Comma separated list of Zookeeper servers.
 
 .TP
@@ -59,8 +59,12 @@ User name for autentization to Zookeeper service. Default is \fIindigo-testbed\f
 Password for autentization to Zookeeper service. Default if \fIchangeit\fR.
 
 .TP
-\fB-s\fR, \fP--services\fR SERVICE1[,SERVICE2...]
+\fB-s\fR, \fP--services\fR \fISERVICE\fR...
 Comma separated list of services.
+
+.TP
+\fB-w\fR, \fP--wait\fR \fITIME\fR
+Time to wait in seconds for \fBwait\fR command. Zero mean wait infinitely. Default is 1800.
 
 
 .SH COMMANDS
