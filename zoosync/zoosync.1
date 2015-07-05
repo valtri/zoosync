@@ -43,6 +43,10 @@ Comma separated list of Zookeeper servers.
 Use specified hostname instead of the system one.
 
 .TP
+\fB-m\fR, \fB--multi\fR \fIMODE\fR
+How to treat multiple hostnames in output. It can be \fBfirst\fR, \fBlist\fR, \fBrandom\fR. Default is \fBfirst\fR.
+
+.TP
 \fB-n\fR, \fP--dry\fR
 Do not perform any changes, only read-only network operations.
 
@@ -63,11 +67,11 @@ Comma separated list of services.
 
 .TP
 \fBcleanup\fR
-Remove all inactive services and get information about all requested services. The test of activity is performed by \fIping\fR and \fIping6\fR commands.
+Remove all inactive hostnames from services and get information about all requested services. The test of activity is performed by \fIping\fR and \fIping6\fR commands.
 
 .TP
 \fBcreate\fR
-Create services. If any service is already created, error is returned.
+Create service endpoints. If any service/hostname combination is already created, error is returned.
 
 .TP
 \fBget\fR
@@ -79,19 +83,19 @@ Get information about all services.
 
 .TP
 \fBregister\fR
-Register services. If any service is already created, it is not updated and no error is returned.
+Register service endpoints. If any service/hostname combination is already created, no error is returned.
 
 .TP
 \fBremove\fR
-Remove services.
+Remove service endpoints. If any service/hostname combination doesn't exist, error is returned.
 
 .TP
 \fBunregister\fR
-Unregister services. It is like \fBremove\fR command, but it only remove services with the same hostname.
+Unregister service endpoints. If any service/hostname combination doesn't exist, no error is returned.
 
 .TP
 \fBwait\fR
-Sit and wait, until all required services appear in Zookeeper.
+Sit and wait, until all required services have an endpoint in Zookeeper.
 
 
 .SH ENVIRONMENT

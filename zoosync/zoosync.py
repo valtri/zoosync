@@ -7,6 +7,7 @@ import re
 import socket
 import sys
 import subprocess
+import random
 import threading
 import time
 import Queue
@@ -15,9 +16,14 @@ from kazoo.security import make_digest_acl, make_acl
 
 N_PING_THREADS = 4
 
+MULTI_FIRST = 1
+MULTI_RANDOM = 2
+MULTI_LIST = 3
+
 hosts = 'localhost:2181'
 base = '/indigo-testbed'
 dry = False
+multi = MULTI_FIRST
 user = 'indigo-testbed'
 password = 'changeit'
 services = []
@@ -42,9 +48,10 @@ OPTIONS:\n\
   -h, --help ......... usage message\n\
   -a, --acl .......... additional ACL\n\
   -b, --base ......... base zookeeper directory\n\
+  -n, --dry .......... read-only network operations\n\
   -H, --hosts ........ comma separated list of hosts\n\
   --hostname ......... use specified hostname\n\
-  -n, --dry .......... read-only network operations\n\
+  -m, --multi .......  selection from multiple endpoints\n\
   -u, --user ......... user\n\
   -p, --password ..... password\n\
   -s, --services ..... comma separated list of services\n\
@@ -98,7 +105,7 @@ def str2acl(s):
 # http://stackoverflow.com/questions/316866/ping-a-site-in-python
 def pinger(i, q):
 	while True:
-		s, ip = q.get()
+		ip, services = q.get()
 		#print "[thread %s] pinging %s" % (i, ip)
 		ret = subprocess.call("ping6 -c 1 -W 2 %s" % ip,
 			shell = True,
@@ -111,35 +118,109 @@ def pinger(i, q):
 				stderr = subprocess.STDOUT)
 		if ret == 0:
 			#print '%s active' % ip
-			q_active.put([s, ip])
+			q_active.put([ip, services])
 		else:
 			#print '%s dead' % ip
-			q_inactive.put([s, ip])
+			q_inactive.put([ip, services])
 		q.task_done()
 
 
-def remove(force = False):
-	global output, summary, hostname
-
-	if not services:
-		return
-	if 'REMOVED' not in summary:
-		summary['REMOVED'] = []
-
-	for s in services:
-		path = '%s/%s' % (base, s)
-		if zk.exists(path):
-			value = zk.retry(zk.get, path)[0].decode('utf-8')
-			if value == hostname or force:
-				if not dry:
-					zk.retry(zk.delete, path)
-				summary['REMOVED'].append(s)
-				output['REMOVED_%s' % service2env(s)] = value
-			else:
-				output['SERVICE_%s' % service2env(s)] = value
+def zoo_skeleton(path):
+	if not dry:
+		zk.retry(zk.ensure_path, path, adminAcls + [myAcl])
 
 
-def get():
+def zoo_hostnames(path, multi):
+	children = sorted(zk.retry(zk.get_children, path))
+	if not children:
+		return []
+
+	if multi == MULTI_FIRST:
+		return [children[0]]
+	elif multi == MULTI_RANDOM:
+		index = random.randrange(0, len(children))
+		return [children[index]]
+	else:
+		return children
+
+
+def cleanup():
+	global summary, output
+
+	service_hostnames = {}
+	queue = Queue.Queue()
+
+	get(MULTI_LIST)
+
+	all_services = {}
+	for s in summary['SERVICES']:
+		name = service2env(s)
+		hostnames = output['SERVICE_%s' % name]
+		for ip in hostnames:
+			if not ip in service_hostnames:
+				service_hostnames[ip] = []
+			service_hostnames[ip].append(s)
+			all_services[s] = True
+	for s in summary['MISSING']:
+			all_services[s] = True
+
+	for i in range(N_PING_THREADS):
+		worker = threading.Thread(target=pinger, args=(i, queue))
+		worker.setDaemon(True)
+		worker.start()
+
+	for ip in service_hostnames.keys():
+		queue.put([ip, service_hostnames[ip]])
+	queue.join()
+
+	# cleanups
+	removed_services = {}
+	while not q_inactive.empty():
+		ip, inactive_services = q_inactive.get()
+		for s in inactive_services:
+			path = '%s/%s/%s' % (base, s, ip)
+			name = service2env(s)
+
+			if not dry:
+				zk.retry(zk.delete, path, recursive = True)
+
+			if not s in removed_services:
+				removed_services[s] = []
+			removed_services[s].append(ip)
+
+		q_inactive.task_done()
+
+	# remains active
+	summary_services = {}
+	while not q_active.empty():
+		ip, active_services = q_active.get()
+		for s in active_services:
+			name = service2env(s)
+			if not s in summary_services:
+				summary_services[s] = []
+			summary_services[s].append(ip)
+		q_active.task_done()
+
+	# required services and not active are missing
+	missing_services = {}
+	for s in sorted(all_services.keys()):
+		if not s in summary_services:
+			missing_services[s] = True
+
+	summary = {}
+	output = {}
+	summary['REMOVED'] = sorted(removed_services.keys())
+	for s in sorted(removed_services.keys()):
+		output['REMOVED_%s' % s] = sorted(removed_services[s])
+	summary['MISSING'] = sorted(missing_services.keys())
+	summary['SERVICES'] = sorted(summary_services.keys())
+	for s in sorted(summary_services.keys()):
+		output['SERVICE_%s' % s] = sorted(summary_services[s])
+
+
+def get(multi):
+	global summary, output
+
 	if not services:
 		return
 	if 'SERVICES' not in summary:
@@ -150,60 +231,14 @@ def get():
 	for s in services:
 		path = '%s/%s' % (base, s)
 		name = service2env(s)
+		values = []
 		if zk.exists(path):
-			value = zk.retry(zk.get, path)[0].decode('utf-8')
+			values = zoo_hostnames(path, multi)
+		if values:
 			summary['SERVICES'].append(s)
-			output['SERVICE_%s' % name] = value
 		else:
 			summary['MISSING'].append(s)
-
-
-def cleanup():
-	queue = Queue.Queue()
-
-	if 'REMOVED' not in summary:
-		summary['REMOVED'] = []
-	get()
-
-	for i in range(N_PING_THREADS):
-		worker = threading.Thread(target=pinger, args=(i, queue))
-		worker.setDaemon(True)
-		worker.start()
-
-	for s in summary['SERVICES']:
-		name = service2env(s)
-		ip = output['SERVICE_%s' % name]
-		queue.put([s, ip])
-	queue.join()
-
-	# cleanups:
-	#   1) remove from zookeeper
-	#   2) remove from SERVICES
-	#   3) add to REMOVED
-	#   4) add to MISSSING (it's removed!)
-	while not q_inactive.empty():
-		s, ip = q_inactive.get()
-		path = '%s/%s' % (base, s)
-		name = service2env(s)
-		value = output['SERVICE_%s' % name]
-
-		if not dry:
-			zk.retry(zk.delete, path)
-
-		del output['SERVICE_%s' % name]
-		summary['REMOVED'].append(s)
-		output['REMOVED_%s' % name] = value
-		summary['MISSING'].append(s)
-		output['MISSING_%s' % name] = value
-
-		q_inactive.task_done()
-
-	summary['SERVICES'] = []
-	while not q_active.empty():
-		s, ip = q_active.get()
-		name = service2env(s)
-		summary['SERVICES'].append(s)
-		q_active.task_done()
+		output['SERVICE_%s' % name] = values
 
 
 def list():
@@ -214,9 +249,51 @@ def list():
 	for s in sorted(children):
 		path = '%s/%s' % (base, s)
 		name = service2env(s)
-		value = zk.retry(zk.get, path)[0].decode('utf-8')
+		values = zoo_hostnames(path, multi)
+		if values:
+			summary['SERVICES'].append(s)
+		output['SERVICE_%s' % name] = values
+
+
+def create(strict = True):
+	if not services:
+		return
+	if 'SERVICES' not in summary:
+		summary['SERVICES'] = []
+
+	for s in services:
+		parent_path = '%s/%s' % (base, s)
+		path = '%s/%s' % (parent_path, hostname)
+		name = service2env(s)
+		values = [hostname]
+		if strict:
+			zoo_skeleton(parent_path)
+			if not dry:
+				zk.retry(zk.create, path, value = '', acl = adminAcls + [myAcl])
+		else:
+			zoo_skeleton(path)
 		summary['SERVICES'].append(s)
-		output['SERVICE_%s' % name] = value
+		output['SERVICE_%s' % name] = values
+
+
+def remove(strict = True):
+	if not services:
+		return
+	if 'REMOVED' not in summary:
+		summary['REMOVED'] = []
+
+	for s in services:
+		path = '%s/%s/%s' % (base, s, hostname)
+		name = service2env(s)
+		values = [hostname]
+		if zk.exists(path):
+			if not dry:
+				zk.retry(zk.delete, path, recursive = True)
+			summary['REMOVED'].append(s)
+			output['REMOVED_%s' % name] = values
+		else:
+			if strict:
+				raise ValueError('service endpoint %s/%s doesn\'t exist' % (s, hostname))
 
 
 def wait():
@@ -227,38 +304,21 @@ def wait():
 	while not ok:
 		ok=True
 		for s in services:
-			if not zk.exists('%s/%s' % (base, s)):
+			path = '%s/%s' % (base, s)
+			value = None
+			if zk.exists(path):
+				values = zoo_hostnames(path, multi)
+			if not values:
 				ok=False
 				time.sleep(poll_interval)
 				break
-	get()
+	get(multi)
 	if not summary['MISSING']:
 		del summary['MISSING']
 
 
-def create(strict = True):
-	global hostname
-
-	if not services:
-		return
-	if 'SERVICES' not in summary:
-		summary['SERVICES'] = []
-
-	for s in services:
-		path = '%s/%s' % (base, s)
-		name = service2env(s)
-		value = None
-		if not strict and zk.exists(path):
-			value = zk.retry(zk.get, path)[0].decode('utf-8')
-		if not dry and not value:
-			zk.retry(zk.create, path, hostname, adminAcls + [myAcl])
-			value = hostname
-		summary['SERVICES'].append(s)
-		output['SERVICE_%s' % name] = value
-
-
 def parse_option(opt = None, arg = None, key = None, value = None):
-	global base, admin_acl, dry, hostname, hosts, user, password, services
+	global base, admin_acl, dry, hostname, hosts, multi, user, password, services
 
 	if opt in ['-h', '--help']:
 		usage()
@@ -273,6 +333,13 @@ def parse_option(opt = None, arg = None, key = None, value = None):
 		hosts = arg
 	elif opt in ['-b', '--base'] or key in ['base']:
 		base = arg
+	elif opt in ['-m', '--multi'] or key in ['multi']:
+		if arg in ['random', 'round-robin']:
+			multi = MULTI_RANDOM
+		elif arg in ['all', 'list']:
+			multi = MULTI_LIST
+		else:
+			multi = MULTI_FIRST
 	elif opt in ['-u', '--user'] or key in ['user']:
 		user = arg
 	elif opt in ['-p', '--password'] or key in ['password']:
@@ -305,7 +372,7 @@ def main(argv=sys.argv[1:]):
 		f.close()
 
 	try:
-		opts, args = getopt.getopt(argv, 'ha:b:H:nu:p:s:',['help', 'acl=', 'base=', 'hostname=', 'hosts=', 'dry', 'user=', 'password=', 'services='])
+		opts, args = getopt.getopt(argv, 'ha:b:H:m:nu:p:s:',['help', 'acl=', 'base=', 'hostname=', 'hosts=', 'dry', 'multi=', 'user=', 'password=', 'services='])
 	except getopt.GetoptError:
 		print 'Error parsing arguments'
 		usage()
@@ -340,9 +407,9 @@ def main(argv=sys.argv[1:]):
 
 		for command in args:
 			if command == 'get':
-				get()
+				get(multi)
 			elif command == 'remove':
-				remove(force = True)
+				remove(strict = True)
 			elif command == 'cleanup':
 				cleanup()
 			elif command == 'create':
@@ -352,14 +419,14 @@ def main(argv=sys.argv[1:]):
 			elif command == 'register':
 				create(strict = False)
 			elif command == 'unregister':
-				remove(force = False)
+				remove(strict = False)
 			elif command == 'wait':
 				wait()
 	finally:
 		zk.stop()
 
 	for key in sorted(output.keys()):
-		print '%s=%s' % (key, output[key])
+		print '%s=%s' % (key, ','.join(output[key]))
 	for key in summary.keys():
 		if summary[key]:
 			print '%s=%s' % (key, ','.join(summary[key]))
