@@ -317,6 +317,23 @@ def wait():
 		del summary['MISSING']
 
 
+def purge():
+	if not services:
+		return
+	if 'REMOVED' not in summary:
+		summary['REMOVED'] = []
+
+	for s in services:
+		path = '%s/%s' % (base, s)
+		name = service2env(s)
+		values = zoo_hostnames(path, MULTI_LIST)
+		if zk.exists(path):
+			if not dry:
+				zk.retry(zk.delete, path, recursive = True)
+			summary['REMOVED'].append(s)
+			output['REMOVED_%s' % name] = values
+
+
 def parse_option(opt = None, arg = None, key = None, value = None):
 	global base, admin_acl, dry, hostname, hosts, multi, user, password, services
 
@@ -416,6 +433,8 @@ def main(argv=sys.argv[1:]):
 				create(strict = True)
 			elif command == 'list':
 				list()
+			elif command == 'purge':
+				purge()
 			elif command == 'register':
 				create(strict = False)
 			elif command == 'unregister':
