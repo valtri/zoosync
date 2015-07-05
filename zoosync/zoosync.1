@@ -1,4 +1,4 @@
-.TH ZOOSYNC 1 "July 2014" "CENSET" "Zoosync"
+.TH ZOOSYNC 1 "July 2014" "CESNET" "Zoosync"
 
 
 .SH NAME
@@ -102,6 +102,7 @@ Default location of a configuration file. All long options are available, see \f
 
 This may be called on the side requiring given service.
 
+.nf
  ZOOKEEPER_HOSTS='zoo1.example.com,zoo2.example.com,zoo3.example.com'
  MY_SERVICES='service,service2,service3'
 
@@ -111,16 +112,21 @@ This may be called on the side requiring given service.
  echo "missing: {MISSING}"
  
  eval `zoosync --host ${ZOOKEEPER_HOSTS} --services ${MY_SERVICES} wait`
+.fi
 
 .SS Service provider start-up
 
+.nf
  ZOOKEEPER_HOSTS='zoo1.example.com,zoo2.example.com,zoo3.example.com'
  zoosync --host ${ZOOKEEPER_HOSTS} --services service1 register
+.fi
 
 .SS Service provider shutdown
 
+.nf
  ZOOKEEPER_HOSTS='zoo1.example.com,zoo2.example.com,zoo3.example.com'
  zoosync --host ${ZOOKEEPER_HOSTS} --services service1 unregister
+.fi
 
 
 .SH NOTES
@@ -129,12 +135,16 @@ This may be called on the side requiring given service.
 
 The config file \fI/etc/zoosyncrc\fR can be used for list for Zookeper servers, credentials, and other options:
 
- cat > /etc/zoosyncrc <<EOF
- hosts=zoo1.example.com,zoo2.example.com,zoo3.example.com
- user=indigo-testbed
- password=changeit
- services=service1,service2,service3
- EOF
+.nf
+.RS
+cat > /etc/zoosyncrc <<EOF
+hosts=zoo1.example.com,zoo2.example.com,zoo3.example.com
+user=indigo-testbed
+password=changeit
+services=service1,service2,service3
+EOF
+.RE
+.fi
 
 You may need to use system startup scripts on service providers to register and unregister services.
 
