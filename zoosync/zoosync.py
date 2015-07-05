@@ -33,6 +33,7 @@ hostname = socket.getfqdn()
 poll_interval=10
 zk = None
 adminAcls = []
+hiddenAcls = []
 myAcl = None
 
 output = {}
@@ -71,7 +72,7 @@ def service2env(s):
 	return re.sub(r'[\.-]', r'_', s.upper())
 
 
-def str2acl(s):
+def str2acl(s, hidden = False):
 	create = False
 	delete = False
 	read = False
@@ -87,13 +88,16 @@ def str2acl(s):
 			create = True
 		if re.search('d', permissions):
 			delete = True
-		if re.search('r', permissions):
+		if re.search('r', permissions) and not hidden:
 			read = True
 		if re.search('w', permissions):
 			write = True
-		if re.search('a', permissions):
+		if re.search('a', permissions) and not hidden:
 			admin = True
-		return make_acl(scheme, credential, create = create, delete = delete, read = read, write = write, admin = admin)
+		if create or delete or read or write or admin:
+			return make_acl(scheme, credential, create = create, delete = delete, read = read, write = write, admin = admin)
+		else:
+			return None
 	else:
 		print >> sys.stderr, 'Warning: invalid ACL: %s' % s
 		return None
@@ -334,6 +338,70 @@ def purge():
 			output['REMOVED_%s' % name] = values
 
 
+def tag(tagname, tagvalue):
+	if not services:
+		return
+	if 'MODIFIED' not in summary:
+		summary['MODIFIED'] = []
+
+	if re.match(r'_', tagname):
+		acls = hiddenAcls
+	else:
+		acls = adminAcls
+	for s in services:
+		path = '%s/%s/%s/%s' % (base, s, hostname, tagname)
+		name = service2env(s)
+		if not dry:
+			zk.retry(zk.create, path, value = tagvalue, acl = acls + [myAcl])
+		summary['MODIFIED'].append(s)
+		output['MODIFIED_%s' % name] = [hostname]
+
+
+def readtag(tagname):
+	if 'SERVICES' not in summary:
+		summary['SERVICES'] = []
+
+	for s in services:
+		path = '%s/%s/%s/%s' % (base, s, hostname, tagname)
+		name = service2env(s)
+		if zk.exists(path):
+			value = zk.retry(zk.get, path)[0].decode('utf-8')
+			summary['SERVICES'].append(s)
+			output['SERVICE_%s_TAG_%s' % (name, service2env(tagname))] = [value]
+
+
+def readtags():
+	if 'SERVICES' not in summary:
+		summary['SERVICES'] = []
+
+	for s in services:
+		path = '%s/%s/%s' % (base, s, hostname)
+		name = service2env(s)
+		if zk.exists(path):
+			children = zk.retry(zk.get_children, path)
+			for t in children:
+				value = zk.retry(zk.get, '%s/%s' % (path, t))[0].decode('utf-8')
+				output['SERVICE_%s_TAG_%s' % (name, service2env(t))] = [value]
+			if children:
+				summary['SERVICES'].append(s)
+
+
+def untag(tagname):
+	if not services:
+		return
+	if 'MODIFIED' not in summary:
+		summary['MODIFIED'] = []
+
+	for s in services:
+		path = '%s/%s/%s/%s' % (base, s, hostname, tagname)
+		name = service2env(s)
+		if zk.exists(path):
+			if not dry:
+				zk.retry(zk.delete, path)
+			summary['MODIFIED'].append(s)
+			output['MODIFIED_%s' % name] = [hostname]
+
+
 def parse_option(opt = None, arg = None, key = None, value = None):
 	global base, admin_acl, dry, hostname, hosts, multi, user, password, services
 
@@ -366,7 +434,7 @@ def parse_option(opt = None, arg = None, key = None, value = None):
 
 
 def main(argv=sys.argv[1:]):
-	global zk, myAcl, adminAcls
+	global zk, myAcl, adminAcls, hiddenAcls
 	f = None
 
 	config_file = os.getenv('ZOOSYNC_CONF', '/etc/zoosyncrc')
@@ -409,7 +477,12 @@ def main(argv=sys.argv[1:]):
 			acl = str2acl(s);
 			if acl:
 				adminAcls += [acl]
+			acl = str2acl(s, hidden = True);
+			if acl:
+				hiddenAcls += [acl]
+
 	#print '# Admin ACL: %s' % adminAcls
+	#print '# Secret ACL: %s' % hiddenAcls
 
 	zk = KazooClient(
 		hosts,
@@ -437,8 +510,20 @@ def main(argv=sys.argv[1:]):
 				purge()
 			elif command == 'register':
 				create(strict = False)
+			elif command == 'tag':
+				for t in args[1:]:
+					tagname, tagvalue = re.split('=', t, 1)
+					tag(tagname, tagvalue)
+			elif command == 'read-tag':
+				for t in args[1:]:
+					readtag(t)
+			elif command == 'read-tags':
+				readtags()
 			elif command == 'unregister':
 				remove(strict = False)
+			elif command == 'untag':
+				for t in args[1:]:
+					untag(t)
 			elif command == 'wait':
 				wait()
 	finally:

@@ -86,6 +86,14 @@ Get information about all services.
 Purge requested services. It will remove all endpoints and service nodes.
 
 .TP
+\fBread-tag\fR \fITAGNAME\fR...
+Read tags of service endpoints.
+
+.TP
+\fBread-tags\fR
+Read all tags of service endpoints.
+
+.TP
 \fBregister\fR
 Register service endpoints. If any service/hostname combination is already created, no error is returned.
 
@@ -94,8 +102,16 @@ Register service endpoints. If any service/hostname combination is already creat
 Remove service endpoints. If any service/hostname combination doesn't exist, error is returned.
 
 .TP
+\fBtag\fR \fITAGNAME\fR=\fIVALUE\fR...
+Tag service endpoints. If \fITAGNAME\fR begins with '_' (underscore), the value is protected by more strict ACL.
+
+.TP
 \fBunregister\fR
 Unregister service endpoints. If any service/hostname combination doesn't exist, no error is returned.
+
+.TP
+\fBuntag\fR \fITAGNAME\fR...
+Remove tag from service endpoints.
 
 .TP
 \fBwait\fR
