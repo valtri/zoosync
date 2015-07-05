@@ -61,9 +61,15 @@ COMMANDS:\n\
   get   ...... get given services\n\
   cleanup .... get given services (only active), remove inactive\n\
   create ..... create a service\n\
+  purge ...... purge all endpoints of the service\n\
+  read-tag ... read specifig tag\n\
+  read-tags .. read all tags\n\
   register ... register a service\n\
   remove ..... remove given services\n\
+  tag ........ create a tag\n\
+  tags ....... read all tags\n\
   unregister . unregister services\n\
+  untag ...... remove a tag\n\
   wait ......  wait for given services\n\
 ' % sys.argv[0]
 
@@ -517,7 +523,7 @@ def main(argv=sys.argv[1:]):
 			elif command == 'read-tag':
 				for t in args[1:]:
 					readtag(t)
-			elif command == 'read-tags':
+			elif command == 'read-tags' or command == 'tags':
 				readtags()
 			elif command == 'unregister':
 				remove(strict = False)

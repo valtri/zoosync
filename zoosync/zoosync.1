@@ -91,7 +91,7 @@ Read tags of service endpoints.
 
 .TP
 \fBread-tags\fR
-Read all tags of service endpoints.
+Read all tags of service endpoints. Synonym for \fBtags\fR.
 
 .TP
 \fBregister\fR
@@ -103,7 +103,11 @@ Remove service endpoints. If any service/hostname combination doesn't exist, err
 
 .TP
 \fBtag\fR \fITAGNAME\fR=\fIVALUE\fR...
-Tag service endpoints. If \fITAGNAME\fR begins with '_' (underscore), the value is protected by more strict ACL.
+Tag service endpoints. If \fITAGNAME\fR begins with '_' (underscore), the value is protected using more strict ACL.
+
+.TP
+\fBtags\fR
+Read all tags of service endpoints. Synonym for \fBread-tags\fR.
 
 .TP
 \fBunregister\fR
