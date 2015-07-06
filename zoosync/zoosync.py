@@ -181,8 +181,8 @@ def cleanup():
 		worker.setDaemon(True)
 		worker.start()
 
-	for ip in service_hostnames.keys():
-		queue.put([ip, service_hostnames[ip]])
+	for ip, hostnames in service_hostnames.items():
+		queue.put([ip, hostnames])
 	queue.join()
 
 	# cleanups
@@ -222,12 +222,12 @@ def cleanup():
 	summary = {}
 	output = {}
 	summary['REMOVED'] = sorted(removed_services.keys())
-	for s in sorted(removed_services.keys()):
-		output['REMOVED_%s' % s] = sorted(removed_services[s])
+	for s, hostnames in sorted(removed_services.items()):
+		output['REMOVED_%s' % s] = sorted(hostnames)
 	summary['MISSING'] = sorted(missing_services.keys())
 	summary['SERVICES'] = sorted(summary_services.keys())
-	for s in sorted(summary_services.keys()):
-		output['SERVICE_%s' % s] = sorted(summary_services[s])
+	for s, hostnames in sorted(summary_services.items()):
+		output['SERVICE_%s' % s] = sorted(hostnames)
 
 
 def get(multi):
