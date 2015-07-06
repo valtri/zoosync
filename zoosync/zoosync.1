@@ -82,6 +82,19 @@ Create service endpoints. If any service/hostname combination is already created
 Get information about all requested services.
 
 .TP
+\fBdeploy\fR
+Configure \fBzoosync\fR on the local system:
+
+ * installs startup script \fI/etc/init.d/zoosync\fR or unit file \fI/etc/systemd/system/zoosync.service\fR and enable \fBzoosync\fR service
+ * creates config file \fI/etc/zoosyncrc\fR, if not exists already
+ * creates default file \fI/etc/default\fR with services, if not exists already
+ * creates daily cron job \fI/etc/cron.d/zoosync\fR
+
+Install prefix can be specified using environment variable \fB$DESTDIR\fR.
+
+Service is not enabled when \fB--dry\fR option is used.
+
+.TP
 \fBlist\fR
 Get information about all services.
 
@@ -190,7 +203,7 @@ EOF
 .RE
 .fi
 
-You may need to use system startup scripts on service providers to register and unregister services.
+You may need to use system startup scripts on service providers to register and unregister services. See \fBdeploy\fR command.
 
 
 .SS Hierarchical ACL

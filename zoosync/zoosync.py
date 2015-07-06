@@ -3,6 +3,7 @@
 import logging
 import getopt
 import os
+import pkg_resources
 import re
 import socket
 import sys
@@ -416,6 +417,69 @@ def untag(tagname):
 			output['MODIFIED_%s' % name] = [hostname]
 
 
+def create_file(dest):
+	if not os.path.exists(os.path.dirname(dest)):
+		os.makedirs(os.path.dirname(dest))
+	return open(dest, 'w')
+
+
+def create_from_stream(stream, dest, mode = 0644):
+	with create_file(dest) as f:
+		for line in stream.readlines():
+			f.write(line)
+	os.chmod(dest, mode)
+
+
+def deploy():
+	ok = True
+	cron_minutes = random.randrange(0, 60)
+	destdir = os.getenv('DESTDIR', '/')
+	req = pkg_resources.Requirement.parse('zoosync')
+
+	if subprocess.call(['pkg-config', '--exists', 'systemd']) == 0:
+		# SystemD unit file
+		dest = os.path.join(destdir, 'etc/systemd/system', 'zoosync.service')
+		fs = pkg_resources.resource_stream(req, "zoosync/scripts/zoosync.service")
+		create_from_stream(fs, dest, 0644)
+		if not dry:
+			if subprocess.call(['systemctl', 'daemon-reload']) != 0:
+				print >> sys.stderr, 'systemctl daemon-reload failed'
+				ok = False
+			if subprocess.call(['systemctl', 'enable', 'zoosync']) != 0:
+				print >> sys.stderr, 'Enabling zoosync service failed'
+				ok = False
+	else:
+		# SystemV startup script
+		dest = os.path.join(destdir, 'etc/init.d', 'zoosync')
+		fs = pkg_resources.resource_stream(req, "zoosync/scripts/zoosync.sh")
+		create_from_stream(fs, dest, 0755)
+		if not dry:
+			if os.path.exists('/etc/redhat-release'):
+				if subprocess.call(['chkconfig', 'zoosync', 'enable']) != 0:
+					print >> sys.stderr, 'Enabling zoosync service failed'
+					ok = False
+			else:
+				if subprocess.call(['update-rc.d', 'zoosync', 'defaults']) != 0:
+					print >> sys.stderr, 'Enabling zoosync service failed'
+					ok = False
+
+	dest = os.path.join(destdir, 'etc/cron.d', 'zoosync')
+	with create_file(dest) as f:
+		f.write('%s 0 * * *	service zoosync start >/dev/null 2>/dev/null || :' % cron_minutes)
+
+	dest = os.path.join(destdir, 'etc', 'zoosyncrc')
+	if not os.path.exists(dest):
+		with create_file(dest) as f:
+			f.write('zookeeper=%s\nbase=%s\nuser=%s\npassword=%s\nacl=%s\n' % (zookeeper_hosts, base, user, password, admin_acl))
+
+	dest = os.path.join(destdir, 'etc', 'default', 'zoosync')
+	if not os.path.exists(dest):
+		with create_file(dest) as f:
+			f.write('SERVICES=%s\n' % ','.join(services))
+
+	return ok
+
+
 def parse_option(opt = None, arg = None, key = None, value = None):
 	global base, admin_acl, dry, hostname, zookeeper_hosts, multi, user, password, services, wait_time
 
@@ -512,7 +576,9 @@ def main(argv=sys.argv[1:]):
 			zk.retry(zk.ensure_path, base, adminAcls + [myAcl])
 
 		for command in args:
-			if command == 'get':
+			if command == 'deploy':
+				deploy()
+			elif command == 'get':
 				get(multi)
 			elif command == 'remove':
 				remove(strict = True)
