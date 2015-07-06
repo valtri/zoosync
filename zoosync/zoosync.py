@@ -455,7 +455,7 @@ def deploy():
 		create_from_stream(fs, dest, 0755)
 		if not dry:
 			if os.path.exists('/etc/redhat-release'):
-				if subprocess.call(['chkconfig', 'zoosync', 'enable']) != 0:
+				if subprocess.call(['chkconfig', 'zoosync', 'on']) != 0:
 					print >> sys.stderr, 'Enabling zoosync service failed'
 					ok = False
 			else:
@@ -471,6 +471,7 @@ def deploy():
 	if not os.path.exists(dest):
 		with create_file(dest) as f:
 			f.write('zookeeper=%s\nbase=%s\nuser=%s\npassword=%s\nacl=%s\n' % (zookeeper_hosts, base, user, password, admin_acl))
+		os.chmod(dest, 0600)
 
 	dest = os.path.join(destdir, 'etc', 'default', 'zoosync')
 	if not os.path.exists(dest):
