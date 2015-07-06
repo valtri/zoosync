@@ -35,11 +35,7 @@ When using separated permissions, there should be also the shared admin ACL, for
 Base zookeeper directory. Default is \fI/indigo-testbed\fR.
 
 .TP
-\fB-H\fR, \fP--hosts\fR \fISERVER\fR...
-Comma separated list of Zookeeper servers.
-
-.TP
-\fB--hostname\fR \fIHOSTNAME\fR
+\fB-H\fR, \fB--hostname\fR \fIHOSTNAME\fR
 Use specified hostname instead of the system one.
 
 .TP
@@ -65,6 +61,10 @@ Comma separated list of services.
 .TP
 \fB-w\fR, \fP--wait\fR \fITIME\fR
 Time to wait in seconds for \fBwait\fR command. Zero mean wait infinitely. Default is 1800.
+
+.TP
+\fB-z\fR, \fP--zookeeper\fR \fISERVER\fR...
+Comma separated list of Zookeeper servers.
 
 
 .SH COMMANDS
@@ -182,7 +182,7 @@ The config file \fI/etc/zoosyncrc\fR can be used for list for Zookeper servers, 
 .nf
 .RS
 cat > /etc/zoosyncrc <<EOF
-hosts=zoo1.example.com,zoo2.example.com,zoo3.example.com
+zookeeper=zoo1.example.com,zoo2.example.com,zoo3.example.com
 user=indigo-testbed
 password=changeit
 services=service1,service2,service3

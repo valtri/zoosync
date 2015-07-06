@@ -20,7 +20,7 @@ MULTI_FIRST = 1
 MULTI_RANDOM = 2
 MULTI_LIST = 3
 
-hosts = 'localhost:2181'
+zookeeper_hosts = 'localhost:2181'
 base = '/indigo-testbed'
 dry = False
 multi = MULTI_FIRST
@@ -51,13 +51,13 @@ OPTIONS:\n\
   -a, --acl .......... additional ACL\n\
   -b, --base ......... base zookeeper directory\n\
   -n, --dry .......... read-only network operations\n\
-  -H, --hosts ........ comma separated list of hosts\n\
-  --hostname ......... use specified hostname\n\
+  -H, --hostname ..... use specified hostname\n\
   -m, --multi .......  selection from multiple endpoints\n\
   -u, --user ......... user\n\
   -w, --wait ......... time to wait for wait command\n\
   -p, --password ..... password\n\
   -s, --services ..... comma separated list of services\n\
+  -z, --zookeeper .... comma separated list of zookeeper hosts\n\
 COMMANDS:\n\
   list ....... get all services\n\
   get   ...... get given services\n\
@@ -417,7 +417,7 @@ def untag(tagname):
 
 
 def parse_option(opt = None, arg = None, key = None, value = None):
-	global base, admin_acl, dry, hostname, hosts, multi, user, password, services, wait_time
+	global base, admin_acl, dry, hostname, zookeeper_hosts, multi, user, password, services, wait_time
 
 	if opt in ['-h', '--help']:
 		usage()
@@ -426,10 +426,8 @@ def parse_option(opt = None, arg = None, key = None, value = None):
 		admin_acl = arg
 	elif opt in ['-n', '--dry'] or key in ['dry']:
 		dry = True
-	elif opt in ['--hostname'] or key in ['hostname']:
+	elif opt in ['-H', '--hostname'] or key in ['hostname']:
 		hostname = arg
-	elif opt in ['-H', '--hosts'] or key in ['hosts']:
-		hosts = arg
 	elif opt in ['-b', '--base'] or key in ['base']:
 		base = arg
 	elif opt in ['-m', '--multi'] or key in ['multi']:
@@ -447,6 +445,8 @@ def parse_option(opt = None, arg = None, key = None, value = None):
 		password = arg
 	elif opt in ['-s', '--services'] or key in ['services']:
 		services = re.split(',', arg)
+	elif opt in ['-z', '--zookeeper'] or key in ['zookeeper', 'hosts']:
+		zookeeper_hosts = arg
 
 
 def main(argv=sys.argv[1:]):
@@ -473,7 +473,7 @@ def main(argv=sys.argv[1:]):
 		f.close()
 
 	try:
-		opts, args = getopt.getopt(argv, 'ha:b:H:m:np:s:u:w:',['help', 'acl=', 'base=', 'hostname=', 'hosts=', 'dry', 'multi=', 'user=', 'password=', 'services=', 'wait='])
+		opts, args = getopt.getopt(argv, 'ha:b:H:m:np:s:u:w:z:',['help', 'acl=', 'base=', 'hostname=', 'dry', 'multi=', 'user=', 'password=', 'services=', 'wait=', 'zookeeper='])
 	except getopt.GetoptError:
 		print 'Error parsing arguments'
 		usage()
@@ -501,7 +501,7 @@ def main(argv=sys.argv[1:]):
 	#print '# Secret ACL: %s' % hiddenAcls
 
 	zk = KazooClient(
-		hosts,
+		zookeeper_hosts,
 		auth_data=[('digest', '%s:%s' % (user, password))]
 	)
 	
