@@ -508,7 +508,10 @@ def parse_option(opt = None, arg = None, key = None, value = None):
 	elif opt in ['-p', '--password'] or key in ['password']:
 		password = arg
 	elif opt in ['-s', '--services'] or key in ['services']:
-		services = re.split(',', arg)
+		if arg:
+			services = re.split(',', arg)
+		else:
+			services = []
 	elif opt in ['-z', '--zookeeper'] or key in ['zookeeper', 'hosts']:
 		zookeeper_hosts = arg
 
