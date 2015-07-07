@@ -53,7 +53,7 @@ OPTIONS:\n\
   -b, --base ......... base zookeeper directory\n\
   -n, --dry .......... read-only network operations\n\
   -H, --hostname ..... use specified hostname\n\
-  -m, --multi .......  selection from multiple endpoints\n\
+  -m, --multi ........ selection from multiple endpoints\n\
   -u, --user ......... user\n\
   -w, --wait ......... time to wait for wait command\n\
   -p, --password ..... password\n\
@@ -61,7 +61,7 @@ OPTIONS:\n\
   -z, --zookeeper .... comma separated list of zookeeper hosts\n\
 COMMANDS:\n\
   list ....... get all services\n\
-  get   ...... get given services\n\
+  get ........ get given services\n\
   cleanup .... get given services (only active), remove inactive\n\
   create ..... create a service\n\
   purge ...... purge all endpoints of the service\n\
@@ -73,7 +73,7 @@ COMMANDS:\n\
   tags ....... read all tags\n\
   unregister . unregister services\n\
   untag ...... remove a tag\n\
-  wait ......  wait for given services\n\
+  wait ....... wait for given services\n\
 ' % sys.argv[0]
 
 
@@ -436,7 +436,16 @@ def deploy():
 	destdir = os.getenv('DESTDIR', '/')
 	req = pkg_resources.Requirement.parse('zoosync')
 
-	if subprocess.call(['pkg-config', '--exists', 'systemd']) == 0:
+	try:
+		has_systemd = subprocess.call(['pkg-config', '--exists', 'systemd'])
+	except OSError, e:
+		if e.errno == 2:
+			print >> sys.stderr, 'pkg-config required'
+			return False
+		else:
+			raise
+
+	if has_systemd == 0:
 		# SystemD unit file
 		dest = os.path.join(destdir, 'etc/systemd/system', 'zoosync.service')
 		fs = pkg_resources.resource_stream(req, "zoosync/scripts/zoosync.service")
@@ -520,6 +529,7 @@ def parse_option(opt = None, arg = None, key = None, value = None):
 def main(argv=sys.argv[1:]):
 	global zk, myAcl, adminAcls, hiddenAcls
 	f = None
+	retval = 0
 
 	config_file = os.getenv('ZOOSYNC_CONF', '/etc/zoosyncrc')
 	try:
@@ -581,7 +591,8 @@ def main(argv=sys.argv[1:]):
 
 		for command in args:
 			if command == 'deploy':
-				deploy()
+				if not deploy():
+					retval = 1
 			elif command == 'get':
 				get(multi)
 			elif command == 'remove':
@@ -623,6 +634,8 @@ def main(argv=sys.argv[1:]):
 		else:
 			print '%s=' % key
 
+	return retval
+
 
 if __name__ == "__main__":
-   main(sys.argv[1:])
+	sys.exit(main(sys.argv[1:]))
