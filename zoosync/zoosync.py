@@ -474,7 +474,7 @@ def deploy():
 
 	dest = os.path.join(destdir, 'etc/cron.d', 'zoosync')
 	with create_file(dest) as f:
-		f.write('%s 0 * * *	service zoosync start >/dev/null 2>/dev/null || :' % cron_minutes)
+		f.write('%s 0 * * *	service zoosync start >/dev/null 2>/dev/null || :\n' % cron_minutes)
 
 	dest = os.path.join(destdir, 'etc', 'zoosyncrc')
 	if not os.path.exists(dest):
