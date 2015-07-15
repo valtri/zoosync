@@ -482,10 +482,11 @@ def deploy():
 			f.write('zookeeper=%s\nbase=%s\nuser=%s\npassword=%s\nacl=%s\n' % (zookeeper_hosts, base, user, password, admin_acl))
 		os.chmod(dest, 0600)
 
-	dest = os.path.join(destdir, 'etc', 'default', 'zoosync')
-	if not os.path.exists(dest):
-		with create_file(dest) as f:
-			f.write('SERVICES=%s\n' % ','.join(services))
+	if services:
+		dest = os.path.join(destdir, 'etc', 'default', 'zoosync')
+		if not os.path.exists(dest):
+			with create_file(dest) as f:
+				f.write('SERVICES=%s\n' % ','.join(services))
 
 	return ok
 
