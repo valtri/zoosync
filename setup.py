@@ -14,7 +14,7 @@ with open(path.join(here, 'DESCRIPTION.rst'), encoding='utf-8') as f:
 setup(
     name='zoosync',
 
-    version='2.1.1',
+    version='2.1.2',
 
     description='Zookeeper service discovery',
     long_description=long_description,
