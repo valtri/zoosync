@@ -1,11 +1,11 @@
 #!/bin/sh
+# chkconfig: 2345 75 15
 ### BEGIN INIT INFO
 # Provides:          zoosync
 # Required-Start:    $local_fs $network $named
 # Required-Stop:     $local_fs $network $named
 # Default-Start:     2 3 4 5
 # Default-Stop:      0 1 6
-# X-Interactive:     true
 # Short-Description: Register/unregister services in Zookeeper
 ### END INIT INFO
 
@@ -20,20 +20,26 @@ case $1 in
 	start)
 		log_daemon_msg "Registering" "zoosync"
 		out="`zoosync -s ${SERVICES} create`"
-                log_end_msg $?
+		log_end_msg $?
+		if [ -d /var/lock/subsys/ ]; then
+			touch /var/lock/subsys/zoosync
+		fi
 		;;
 	stop)
 		log_daemon_msg "Unregistering" "zoosync"
 		out="`zoosync -s ${SERVICES} remove`"
-                log_end_msg $?
+		log_end_msg $?
+		if [ -d /var/lock/subsys/ ]; then
+			rm -f /var/lock/subsys/zoosync
+		fi
 		;;
 	reload|restart|force-reload)
 		zoosync -s ${SERVICES} remove >/dev/null
 		out="`zoosync -s ${SERVICES} create`"
-                log_end_msg $?
+		log_end_msg $?
 		;;
 	status)
-		zoosync -s ${SERVICES} get
+		zoosync -m all -s ${SERVICES} get
 		;;
 	*)
 		log_success_msg "Usage: /etc/init.d/zoosync {start|stop|restart|reload|force-reload|status}"
