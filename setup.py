@@ -62,4 +62,6 @@ setup(
             'zoosync=zoosync.zoosync:main',
         ],
     },
+
+    test_suite='tests.test_zoosync.suite'
 )

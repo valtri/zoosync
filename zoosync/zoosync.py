@@ -550,10 +550,9 @@ def parse_option(opt = None, arg = None, key = None, value = None):
 		zookeeper_hosts = arg
 
 
-def main(argv=sys.argv[1:]):
+def setUp(argv, remaining_args = None):
 	global zk, myAcl, adminAcls, hiddenAcls
 	f = None
-	retval = 0
 
 	config_file = os.getenv('ZOOSYNC_CONF', '/etc/zoosyncrc')
 	try:
@@ -608,7 +607,21 @@ def main(argv=sys.argv[1:]):
 	)
 	
 	zk.start()
-	
+
+	if remaining_args != None:
+		remaining_args.extend(args)
+
+
+def tearDown():
+		zk.stop()
+
+
+def main(argv=sys.argv[1:]):
+	args = []
+	retval = 0
+
+	setUp(argv, args)
+
 	try:
 		if not dry:
 			zk.retry(zk.ensure_path, base, adminAcls + [myAcl])
@@ -648,7 +661,7 @@ def main(argv=sys.argv[1:]):
 			elif command == 'wait':
 				wait()
 	finally:
-		zk.stop()
+		tearDown()
 
 	for key in sorted(output.keys()):
 		print '%s=%s' % (key, ','.join(output[key]))

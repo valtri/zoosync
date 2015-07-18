@@ -49,3 +49,12 @@ Deployment
 
   cp scripts/zoosync.service /etc/systemd/system/
   systemctl enable zoosync
+
+Tests
+=====
+
+Tests require running zookeeper and proper configuration of zoosync (see Usage).
+
+Launch::
+
+   python setup.py test
