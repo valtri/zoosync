@@ -297,7 +297,7 @@ def create(strict = True):
 		output['SERVICE_%s' % name] = values
 
 
-def remove(strict = True):
+def remove():
 	if not services:
 		return
 	if 'REMOVED' not in summary:
@@ -308,16 +308,28 @@ def remove(strict = True):
 		name = service2env(s)
 		values = [hostname]
 		if zk.exists(path):
-			if not zk.exists('%s/.deleted' % path):
-				zoo_create('%s/.deleted' % path, strict = False)
-				summary['REMOVED'].append(s)
-				output['REMOVED_%s' % name] = values
-			else:
-				if strict:
-					raise ValueError('service endpoint %s/%s already inactive' % (s, hostname))
+			if not dry:
+				zk.retry(zk.delete, path, recursive = True)
+			summary['REMOVED'].append(s)
+			output['REMOVED_%s' % name] = values
 		else:
-			if strict:
-				raise ValueError('service endpoint %s/%s doesn\'t exist' % (s, hostname))
+			raise ValueError('service endpoint %s/%s doesn\'t exist' % (s, hostname))
+
+
+def unregister():
+	if not services:
+		return
+	if 'REMOVED' not in summary:
+		summary['REMOVED'] = []
+
+	for s in services:
+		path = '%s/%s/%s' % (base, s, hostname)
+		name = service2env(s)
+		values = [hostname]
+		if zk.exists(path) and not zk.exists('%s/.deleted' % path):
+			zoo_create('%s/.deleted' % path, strict = False)
+			summary['REMOVED'].append(s)
+			output['REMOVED_%s' % name] = values
 
 
 def wait():
@@ -608,7 +620,7 @@ def main(argv=sys.argv[1:]):
 			elif command == 'get':
 				get(multi)
 			elif command == 'remove':
-				remove(strict = True)
+				remove()
 			elif command == 'cleanup':
 				cleanup()
 			elif command == 'create':
@@ -629,7 +641,7 @@ def main(argv=sys.argv[1:]):
 			elif command == 'read-tags' or command == 'tags':
 				readtags()
 			elif command == 'unregister':
-				remove(strict = False)
+				unregister()
 			elif command == 'untag':
 				for t in args[1:]:
 					untag(t)
