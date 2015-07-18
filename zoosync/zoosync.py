@@ -138,16 +138,23 @@ def pinger(i, q):
 		q.task_done()
 
 
-def zoo_skeleton(path):
+def zoo_create(path, strict):
 	if not dry:
-		zk.retry(zk.ensure_path, path, adminAcls + [myAcl])
+		if strict:
+			zk.retry(zk.create, path, value = '', acl = adminAcls + [myAcl])
+		else:
+			zk.retry(zk.ensure_path, path, adminAcls + [myAcl])
 
 
-def zoo_hostnames(path, multi):
-	children = sorted(zk.retry(zk.get_children, path))
+def zoo_hostnames(path, multi, deleted = False):
+	children = []
+
+	for child in sorted(zk.retry(zk.get_children, path)):
+		if deleted or not zk.exists('%s/%s/.deleted' % (path, child)):
+			children.append(child)
+
 	if not children:
 		return []
-
 	if multi == MULTI_FIRST:
 		return [children[0]]
 	elif multi == MULTI_RANDOM:
@@ -279,12 +286,13 @@ def create(strict = True):
 		path = '%s/%s' % (parent_path, hostname)
 		name = service2env(s)
 		values = [hostname]
-		if strict:
-			zoo_skeleton(parent_path)
+		zoo_create(parent_path, strict = False)
+		if zk.exists('%s/.deleted' % path):
 			if not dry:
-				zk.retry(zk.create, path, value = '', acl = adminAcls + [myAcl])
+				zk.retry(zk.delete, '%s/.deleted' % path)
 		else:
-			zoo_skeleton(path)
+			zoo_create(path, strict)
+
 		summary['SERVICES'].append(s)
 		output['SERVICE_%s' % name] = values
 
@@ -300,10 +308,13 @@ def remove(strict = True):
 		name = service2env(s)
 		values = [hostname]
 		if zk.exists(path):
-			if not dry:
-				zk.retry(zk.delete, path, recursive = True)
-			summary['REMOVED'].append(s)
-			output['REMOVED_%s' % name] = values
+			if not zk.exists('%s/.deleted' % path):
+				zoo_create('%s/.deleted' % path, strict = False)
+				summary['REMOVED'].append(s)
+				output['REMOVED_%s' % name] = values
+			else:
+				if strict:
+					raise ValueError('service endpoint %s/%s already inactive' % (s, hostname))
 		else:
 			if strict:
 				raise ValueError('service endpoint %s/%s doesn\'t exist' % (s, hostname))
@@ -345,8 +356,8 @@ def purge():
 	for s in services:
 		path = '%s/%s' % (base, s)
 		name = service2env(s)
-		values = zoo_hostnames(path, MULTI_LIST)
 		if zk.exists(path):
+			values = zoo_hostnames(path, MULTI_LIST, deleted = True)
 			if not dry:
 				zk.retry(zk.delete, path, recursive = True)
 			summary['REMOVED'].append(s)

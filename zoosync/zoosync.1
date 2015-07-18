@@ -75,7 +75,7 @@ Remove all inactive hostnames from services and get information about all reques
 
 .TP
 \fBcreate\fR
-Create service endpoints. If any service/hostname combination is already created, error is returned.
+Create service endpoints. If any service/hostname combination is already created and active, error is returned.
 
 .TP
 \fBget\fR
@@ -90,17 +90,17 @@ Configure \fBzoosync\fR on the local system:
  * creates default file \fI/etc/default\fR with services, if not exists already
  * creates daily cron job \fI/etc/cron.d/zoosync\fR
 
-Install prefix can be specified using environment variable \fB$DESTDIR\fR.
+Install root directory can be specified using environment variable \fB$DESTDIR\fR.
 
 Service is not enabled when \fB--dry\fR option is used.
 
 .TP
 \fBlist\fR
-Get information about all services.
+Get information about all active services.
 
 .TP
 \fBpurge\fR
-Purge requested services. It will remove all endpoints and service nodes.
+Purge requested services. It will remove all endpoints and service nodes, active and inactive.
 
 .TP
 \fBread-tag\fR \fITAGNAME\fR...
@@ -112,11 +112,11 @@ Read all tags of service endpoints. Hostname option to select proper endpoints i
 
 .TP
 \fBregister\fR
-Register service endpoints. If any service/hostname combination is already created, no error is returned.
+Register service endpoints. If any service/hostname combination is already created or also active, no error is returned.
 
 .TP
 \fBremove\fR
-Remove service endpoints. If any service/hostname combination doesn't exist, error is returned.
+Deactivate service endpoints. If any service/hostname combination doesn't exist or isn't active, error is returned.
 
 .TP
 \fBtag\fR \fITAGNAME\fR=\fIVALUE\fR...
@@ -128,7 +128,7 @@ Read all tags of service endpoints. Hostname option to select proper endpoints i
 
 .TP
 \fBunregister\fR
-Unregister service endpoints. If any service/hostname combination doesn't exist, no error is returned.
+Deactivate service endpoints. If any service/hostname combination doesn't exist or isn't active, no error is returned.
 
 .TP
 \fBuntag\fR \fITAGNAME\fR...
