@@ -6,6 +6,8 @@ from setuptools import setup, find_packages
 from codecs import open
 from os import path
 
+import zoosync
+
 here = path.abspath(path.dirname(__file__))
 
 with open(path.join(here, 'DESCRIPTION.rst'), encoding='utf-8') as f:
@@ -14,7 +16,7 @@ with open(path.join(here, 'DESCRIPTION.rst'), encoding='utf-8') as f:
 setup(
     name='zoosync',
 
-    version='2.1.2',
+    version=zoosync.__version__,
 
     description='Zookeeper service discovery',
     long_description=long_description,
