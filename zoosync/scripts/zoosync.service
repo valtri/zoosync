@@ -5,8 +5,8 @@ After=network.target
 [Service]
 Type=forking
 EnvironmentFile=-/etc/default/zoosync
-ExecStart=/usr/bin/zoosync ${ARGS} register
-ExecStop=/usr/bin/zoosync ${ARGS} unregister
+ExecStart=/usr/bin/zoosync -s ${SERVICES} register
+ExecStop=/usr/bin/zoosync -s ${SERVICES} unregister
 TimeoutSec=0
 RemainAfterExit=yes
 
