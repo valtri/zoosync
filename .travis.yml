@@ -4,14 +4,14 @@ python:
   - "2.7"
 
 install:
-  - pip install 'kazoo <= 2.0' .
+  - pip install 'kazoo <= 2.0'
   - pip install coveralls
 
 before_script:
   - sudo apt-get update -qq
   - sudo apt-get install -y zookeeperd
 
-script: python setup.py test
+script: coverage run --source=zoosync setup.py test
 
 after_success:
   - coveralls
