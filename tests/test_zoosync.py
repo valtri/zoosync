@@ -10,13 +10,14 @@ names = ['TEST_SERVICE1', 'TEST_SERVICE2']
 hostname = 'example-hostname'
 
 
-def check_services(op = 'SERVICE', sum = 'SERVICES', details = True):
+def check_services(op = 'SERVICE', sum = 'SERVICES', details = True, read_all = False):
 		for s, n in zip(services, names):
 			assert s in zoosync.summary[sum]
 			if details:
 				assert '%s_%s' % (op, n) in zoosync.output
 				assert zoosync.output['%s_%s' % (op, n)] == [hostname]
-		assert len(services) == len(zoosync.summary[sum])
+		if not read_all:
+			assert len(services) == len(zoosync.summary[sum])
 
 
 def clean_services():
@@ -70,52 +71,67 @@ class TestZoosyncCreate(TestZoosync):
 		clean_services()
 
 
-	def test_04_create2_exception(self):
+	def test_04_list(self):
+		zoosync.list()
+		check_services(read_all = True)
+		clean_services()
+
+
+	def test_05_create2_exception(self):
 		with self.assertRaises(Exception):
 			zoosync.create()
 		assert 'SERVICES' not in zoosync.output
 
 
-	def test_05_remove(self):
+	def test_06_remove(self):
 		zoosync.remove()
 		check_services('REMOVED', 'REMOVED')
 		clean_services()
 
 
-	def test_06_remove2_exception(self):
+	def test_07_remove2_exception(self):
 		with self.assertRaises(Exception):
 			zoosync.remove()
 
 
+	def test_08_list_removed(self):
+		zoosync.list()
+		for name in names:
+			env = 'SERVICE_%s' % name
+			if env in zoosync.output:
+				assert hostname not in zoosync.output[env]
+		clean_services()
+
+
 	"""Registration tests (double registration should work)
 	"""
-	def test_07_register_ok(self):
+	def test_09_register_ok(self):
 		zoosync.create(strict = False)
 		check_services()
 		clean_services()
 
 
-	def test_08_register2_ok(self):
+	def test_10_register2_ok(self):
 		zoosync.create(strict = False)
 		check_services()
 		clean_services()
 
 
-	def test_09_register3_ok(self):
+	def test_11_register3_ok(self):
 		zoosync.create(strict = False)
 		check_services()
 		clean_services()
 
 
-	def test_10_purge(self):
+	def test_12_purge(self):
 		zoosync.purge()
 		check_services('REMOVED', 'REMOVED')
 		clean_services()
 
 
-	"""(double registration should work)
+	"""(double purge should work)
 	"""
-	def test_11_purge2_ok(self):
+	def test_13_purge2_ok(self):
 		zoosync.purge()
 		assert 'SERVICES' not in zoosync.output
 		assert 'REMOVED' not in zoosync.output
@@ -123,12 +139,22 @@ class TestZoosyncCreate(TestZoosync):
 
 class TestZoosyncTags(TestZoosync):
 
-	def read_tag(self):
-		zoosync.readtag('tag1')
+	def read_tag(self, empty = False, read_all = False):
+		if read_all:
+			zoosync.readtags()
+		else:
+			zoosync.readtag('tag1')
+			if empty:
+				assert len(zoosync.output) == 0
+			else:
+				assert len(zoosync.output) == len(services)
 		for s, n in zip(services, names):
 			tn = 'SERVICE_%s_TAG_TAG1' % n
-			assert tn in zoosync.output
-			assert zoosync.output[tn] == ['value1']
+			if empty:
+				assert not tn in zoosync.output
+			else:
+				assert tn in zoosync.output
+				assert zoosync.output[tn] == ['value1']
 		clean_services()
 
 
@@ -159,46 +185,66 @@ class TestZoosyncTags(TestZoosync):
 		return self.read_tag()
 
 
-	def test_04_secret_tag(self):
+	def test_05_read_tags(self):
+		return self.read_tag(read_all = True)
+
+
+	def test_06_untag(self):
+		zoosync.untag('tag1')
+		check_services('MODIFIED', 'MODIFIED')
+		clean_services()
+
+
+	def test_07_read_tag_notag(self):
+		return self.read_tag(empty = True)
+
+
+	def test_08_tag2(self):
+		zoosync.tag('tag1', 'value1')
+		check_services('MODIFIED', 'MODIFIED')
+		clean_services()
+
+
+	def test_09_secret_tag(self):
 		zoosync.tag('_secret1', 'secret-value1')
 		check_services('MODIFIED', 'MODIFIED')
 		clean_services()
 
 
-	def test_05_read_secret_tag(self):
+	def test_10_read_secret_tag(self):
 		return self.read_secret_tag()
 
 
 	"""Tags test: unregister to see, if all the tags will survive
-	""            remove to see, if tags will be removed
+	""			remove to see, if tags will be removed
 	"""
-	def test_06_unregister(self):
+	def test_11_unregister(self):
 		zoosync.unregister()
 		check_services('REMOVED', 'REMOVED')
 		clean_services()
 
 
-	def test_07_register(self):
+	def test_12_register(self):
 		zoosync.create(strict = False)
 		check_services()
 		clean_services()
 
 
-	def test_08_read_tag_after(self):
+	def test_13_read_tag_after(self):
 		return self.read_tag()
 
 
-	def test_09_read_secret_tag_after(self):
+	def test_14_read_secret_tag_after(self):
 		return self.read_secret_tag()
 
 
-	def test_10_remove(self):
+	def test_15_remove(self):
 		zoosync.remove()
 		check_services('REMOVED', 'REMOVED')
 		clean_services()
 
 
-	def test_11_no_tags(self):
+	def test_16_no_tags(self):
 		zoosync.readtag('tag1')
 		assert len(zoosync.output) == 0
 		zoosync.readtag('_secret1')
