@@ -15,6 +15,8 @@ import Queue
 from kazoo.client import KazooClient
 from kazoo.security import make_digest_acl, make_acl
 
+import version
+
 N_PING_THREADS = 4
 
 MULTI_FIRST = 1
@@ -574,7 +576,7 @@ def setUp(argv, remaining_args = None):
 		f.close()
 
 	try:
-		opts, args = getopt.getopt(argv, 'ha:b:H:m:np:s:u:w:z:',['help', 'acl=', 'base=', 'hostname=', 'dry', 'multi=', 'user=', 'password=', 'services=', 'wait=', 'zookeeper='])
+		opts, args = getopt.getopt(argv, 'ha:b:H:m:np:s:u:vw:z:',['help', 'acl=', 'base=', 'hostname=', 'dry', 'multi=', 'user=', 'password=', 'services=', 'version', 'wait=', 'zookeeper='])
 	except getopt.GetoptError:
 		print 'Error parsing arguments'
 		usage()
@@ -582,6 +584,9 @@ def setUp(argv, remaining_args = None):
 	for opt, arg in opts:
 		if opt in ['-h', '--help']:
 			usage()
+			sys.exit(0)
+		elif opt in ['-v', '--version']:
+			print version.__version__
 			sys.exit(0)
 		parse_option(opt = opt, arg = arg)
 
