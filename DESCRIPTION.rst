@@ -8,7 +8,7 @@ Usage
 
 See `zoosync --help` for brief usage or manual page for more detailed usage.
 
-The output is in the form of shell variable assignement, so tool could be used this way::
+The output is in the form of shell variable assignement. Tool could be used this way::
 
  ZOO='zoo1.example.com,zoo2.example.com,zoo3.example.com'
  REQ_SERVICES='impala,hadoop-hdfs,test,test2,test3'
@@ -25,30 +25,10 @@ Deployment
 ::
 
   # install
-
   pip install zoosync
 
-  # configure
-
-  cat > /etc/zoosyncrc <<EOF
-  zookeeper=zoo1,zoo2,zoo3
-  user=user
-  password=changeit
-  services=service1,service2
-  EOF
-
-  # automatic startup
-
-  # 1) SystemV
-
-  cp scripts/zoosync.sh /etc/init.d/
-  #debian: update-rc.d zoosync defaults
-  #redhat: chkconfig zoosync on
-
-  # 2) SystemD
-
-  cp scripts/zoosync.service /etc/systemd/system/
-  systemctl enable zoosync
+  # configure (/etc/zoosynrc and startup scripts)
+  zoosync -z zoo1,zoo2,zoo3 -s service1,service2 -u user -p password deploy
 
 Tests
 =====
