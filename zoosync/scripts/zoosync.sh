@@ -19,7 +19,7 @@ fi
 case $1 in
 	start)
 		log_daemon_msg "Registering" "zoosync"
-		out="`zoosync -s ${SERVICES} create`"
+		out="`zoosync -s ${SERVICES} register`"
 		log_end_msg $?
 		if [ -d /var/lock/subsys/ ]; then
 			touch /var/lock/subsys/zoosync
@@ -27,15 +27,15 @@ case $1 in
 		;;
 	stop)
 		log_daemon_msg "Unregistering" "zoosync"
-		out="`zoosync -s ${SERVICES} remove`"
+		out="`zoosync -s ${SERVICES} unregister`"
 		log_end_msg $?
 		if [ -d /var/lock/subsys/ ]; then
 			rm -f /var/lock/subsys/zoosync
 		fi
 		;;
 	reload|restart|force-reload)
-		zoosync -s ${SERVICES} remove >/dev/null
-		out="`zoosync -s ${SERVICES} create`"
+		zoosync -s ${SERVICES} unregister >/dev/null
+		out="`zoosync -s ${SERVICES} register`"
 		log_end_msg $?
 		;;
 	status)
