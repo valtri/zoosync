@@ -1,7 +1,7 @@
 Zoosync
 =======
 
-|build-status|
+|build-status| |coverage-status|
 
 Zoosync is a simple service discovery tool using Zookeeper as database backend.
 
@@ -44,3 +44,6 @@ Launch::
 .. |build-status| image:: https://travis-ci.org/valtri/zoosync.svg?branch=master
    :target: https://travis-ci.org/valtri/zoosync
    :alt: Build status
+.. |coverage-status| image:: https://img.shields.io/coveralls/valtri/zoosync.svg
+   :target: https://coveralls.io/github/valtri/zoosync
+   :alt: Test coverage percentage
